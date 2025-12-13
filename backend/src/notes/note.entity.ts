@@ -23,7 +23,7 @@ export class Note {
   @Column('text', { nullable: true })
   description: string;
 
-  @Column('simple-array', { nullable: true })
+  @Column('text', { array: true, nullable: true, default: '{}' })
   tags: string[];
 
   @Column({ default: false })
