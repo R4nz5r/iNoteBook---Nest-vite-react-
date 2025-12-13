@@ -1,3 +1,4 @@
+import { AuthGuard } from '@nestjs/passport';
 import { CreateNoteDto, UpdateNoteDto } from './dto/note.dto';
 import { NotesService } from './notes.service';
 import {
@@ -13,7 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-@UseGuards()
+@UseGuards(AuthGuard('jwt'))
 @Controller('notes')
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
