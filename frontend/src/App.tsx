@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { NotesProvider } from "./contexts/NotesContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import DashBoard from "./pages/DashBoard";
@@ -52,74 +53,76 @@ const PublicRoute = ({ children }: RouteProps) => {
 const App = () => {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
+      <NotesProvider>
+        <Router>
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
 
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <Register />
-              </PublicRoute>
-            }
-          />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
 
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <DashBoard />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DashBoard />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/notes/new"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <NoteEditor />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/notes/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NoteEditor />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/notes/:id"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <NoteView />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/notes/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NoteView />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/notes/:id/edit"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <NoteEditor />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/notes/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NoteEditor />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Default route */}
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-        </Routes>
-      </Router>
+            {/* Default route */}
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+          </Routes>
+        </Router>
+      </NotesProvider>
     </AuthProvider>
   );
 };
