@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const { createApp } = require('../dist/main');
+import { createApp } from '../main';
 
 let server: any;
 

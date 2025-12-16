@@ -9,10 +9,10 @@ export async function createApp() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.FRONTEND_URL || '*',
     credentials: true,
   });
 
-  await app.init();
+  await app.init(); // Important for serverless
   return server;
 }
