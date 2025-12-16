@@ -1,8 +1,12 @@
+import express from 'express'; // <-- default import
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ExpressAdapter } from '@nestjs/platform-express';
+
+const server = express(); // ✅ works now
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
   app.enableCors({
     origin: process.env.FRONTEND_URL,
@@ -11,6 +15,9 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.init();
 }
+
 bootstrap();
+
+export default server;
