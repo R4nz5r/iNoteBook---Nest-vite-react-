@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useMemo } from "react";
+
 import type { ReactNode } from "react";
 import axios from "axios";
 
@@ -16,11 +17,9 @@ export interface Note {
 
 interface NotesContextType {
   notes: Note[];
-  favorites: Note[];
+  filteredNotes: Note[];
   loading: boolean;
-  searchTerm: string;
   fetchNotes: () => Promise<void>;
-  fetchFavorites: () => Promise<void>;
   createNote: (noteData: Partial<Note>) => Promise<Note>;
   updateNote: (id: string, noteData: Partial<Note>) => Promise<Note>;
   deleteNote: (id: string) => Promise<void>;
@@ -33,7 +32,7 @@ const NotesContext = createContext<NotesContextType | undefined>(undefined);
 
 export const useNotes = () => {
   const context = useContext(NotesContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useNotes must be used within a NotesProvider");
   }
   return context;
@@ -45,15 +44,16 @@ interface NotesProviderProps {
 
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [favorites, setFavorites] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  const baseURL = `${import.meta.env.VITE_API_BASE_URL}/notes`;
+
+  /* ---------------- FETCH ---------------- */
   const fetchNotes = async () => {
     setLoading(true);
     try {
-      const params = searchTerm ? { search: searchTerm } : {};
-      const response = await axios.get("/api/notes", { params });
+      const response = await axios.get(baseURL);
       setNotes(response.data);
     } catch (error) {
       console.error("Failed to fetch notes:", error);
@@ -62,107 +62,70 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     }
   };
 
-  const fetchFavorites = async () => {
-    try {
-      const response = await axios.get("/api/notes/favorites");
-      setFavorites(response.data);
-    } catch (error) {
-      console.error("Failed to fetch favorites:", error);
-    }
+  /* ---------------- CREATE ---------------- */
+  const createNote = async (noteData: Partial<Note>) => {
+    const response = await axios.post(baseURL, noteData);
+    setNotes((prev) => [response.data, ...prev]);
+    return response.data;
   };
 
-  const createNote = async (noteData: Partial<Note>): Promise<Note> => {
-    try {
-      const response = await axios.post("/api/notes", noteData);
-      const newNote = response.data;
-      setNotes((prev) => [newNote, ...prev]);
-      return newNote;
-    } catch (error) {
-      console.error("Failed to create note:", error);
-      throw error;
-    }
+  /* ---------------- UPDATE ---------------- */
+  const updateNote = async (id: string, noteData: Partial<Note>) => {
+    const response = await axios.patch(`${baseURL}/${id}`, noteData);
+    setNotes((prev) =>
+      prev.map((note) => (note.id === id ? response.data : note))
+    );
+    return response.data;
   };
 
-  const updateNote = async (
-    id: string,
-    noteData: Partial<Note>
-  ): Promise<Note> => {
-    try {
-      const response = await axios.patch(`/api/notes/${id}`, noteData);
-      const updatedNote = response.data;
-
-      setNotes((prev) =>
-        prev.map((note) => (note.id === id ? updatedNote : note))
-      );
-      setFavorites((prev) =>
-        prev.map((note) => (note.id === id ? updatedNote : note))
-      );
-
-      return updatedNote;
-    } catch (error) {
-      console.error("Failed to update note:", error);
-      throw error;
-    }
+  /* ---------------- DELETE ---------------- */
+  const deleteNote = async (id: string) => {
+    await axios.delete(`${baseURL}/${id}`);
+    setNotes((prev) => prev.filter((note) => note.id !== id));
   };
 
-  const deleteNote = async (id: string): Promise<void> => {
-    try {
-      await axios.delete(`/api/notes/${id}`);
-      setNotes((prev) => prev.filter((note) => note.id !== id));
-      setFavorites((prev) => prev.filter((note) => note.id !== id));
-    } catch (error) {
-      console.error("Failed to delete note:", error);
-      throw error;
-    }
+  /* ---------------- FAVORITE ---------------- */
+  const toggleFavorite = async (id: string) => {
+    const response = await axios.patch(`${baseURL}/${id}/favorite`);
+    setNotes((prev) =>
+      prev.map((note) => (note.id === id ? response.data : note))
+    );
+    return response.data;
   };
 
-  const toggleFavorite = async (id: string): Promise<Note> => {
-    try {
-      const response = await axios.patch(`/api/notes/${id}/favorite`);
-      const updatedNote = response.data;
+  /* ---------------- SEARCH (LOCAL) ---------------- */
+  const filteredNotes = useMemo(() => {
+    if (!searchTerm.trim()) return notes;
 
-      setNotes((prev) =>
-        prev.map((note) => (note.id === id ? updatedNote : note))
-      );
+    const lower = searchTerm.toLowerCase();
+    return notes.filter(
+      (note) =>
+        note.title.toLowerCase().includes(lower) ||
+        note.content.toLowerCase().includes(lower) ||
+        note.description?.toLowerCase().includes(lower)
+    );
+  }, [notes, searchTerm]);
 
-      // Update favorites list
-      if (updatedNote.isFavorite) {
-        setFavorites((prev) => [...prev, updatedNote]);
-      } else {
-        setFavorites((prev) => prev.filter((note) => note.id !== id));
-      }
+  const searchNotes = (term: string) => setSearchTerm(term);
 
-      return updatedNote;
-    } catch (error) {
-      console.error("Failed to toggle favorite:", error);
-      throw error;
-    }
-  };
-
-  const searchNotes = (term: string) => {
-    setSearchTerm(term);
-  };
-
-  const getNoteById = (id: string): Note | undefined => {
-    return notes.find((note) => note.id === id);
-  };
-
-  const value = {
-    notes,
-    favorites,
-    loading,
-    searchTerm,
-    fetchNotes,
-    fetchFavorites,
-    createNote,
-    updateNote,
-    deleteNote,
-    toggleFavorite,
-    searchNotes,
-    getNoteById,
-  };
+  const getNoteById = (id: string) => notes.find((note) => note.id === id);
 
   return (
-    <NotesContext.Provider value={value}>{children}</NotesContext.Provider>
+    <NotesContext.Provider
+      value={{
+        notes,
+        filteredNotes,
+        loading,
+        fetchNotes,
+        createNote,
+        updateNote,
+        deleteNote,
+        toggleFavorite,
+        searchNotes,
+        getNoteById,
+      }}
+    >
+      {children}
+    </NotesContext.Provider>
   );
 };
