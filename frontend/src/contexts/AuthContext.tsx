@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from "axios";
 import {
   createContext,
@@ -58,53 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
   const [loading, setLoading] = useState(true);
 
-  /* Attach token to axios */
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common.Authorization = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common.Authorization;
-    }
-  }, [token]);
-
-  /* Verify token */
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data } = await axios.get("/auth/profile");
-        setUser(data);
-      } catch {
-        localStorage.removeItem("token");
-        setToken(null);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [token]);
-
   /* ================= ACTIONS ================= */
-
-  const login = async (email: string, password: string) => {
-    const { data } = await axios.post("/auth/login", { email, password });
-    setUser(data.user);
-    setToken(data.token);
-    localStorage.setItem("token", data.token);
-  };
-
-  const register = async (userData: RegisterData) => {
-    const { data } = await axios.post("/auth/register", userData);
-    setUser(data.user);
-    setToken(data.token);
-    localStorage.setItem("token", data.token);
-  };
 
   const logout = () => {
     setUser(null);
@@ -113,7 +68,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     delete axios.defaults.headers.common.Authorization;
   };
 
-  /* ================= VALUE ================= */
+  const login = async (email: string, password: string) => {
+    const { data } = await axios.post("/auth/login", { email, password });
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem("token", data.token);
+    axios.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+  };
+
+  const register = async (userData: RegisterData) => {
+    const { data } = await axios.post("/auth/register", userData);
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem("token", data.token);
+    axios.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+  };
+
+  /* ================= EFFECTS ================= */
+
+  // Attach token to axios headers
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+      delete axios.defaults.headers.common.Authorization;
+    }
+  }, [token]);
+
+  // Fetch profile on load if token exists
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await axios.get("/auth/profile");
+        setUser(data.user); // <-- important: use data.user
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [token]);
+
+  /* ================= PROVIDER VALUE ================= */
 
   return (
     <AuthContext.Provider
