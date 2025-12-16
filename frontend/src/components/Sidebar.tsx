@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { FileText, Heart, Plus, LogOut } from "lucide-react";
 
 const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const location = useLocation();
 
   const baseLink =
@@ -58,7 +58,11 @@ const Sidebar: React.FC = () => {
         <div className="mb-4 text-sm text-neutral-500">
           Signed in as
           <div className="mt-1 font-semibold text-neutral-900">
-            {user?.firstName} {user?.lastName}
+            {loading
+              ? "Loading..."
+              : user
+              ? `${user.firstName} ${user.lastName}`
+              : "Guest"}
           </div>
         </div>
 
